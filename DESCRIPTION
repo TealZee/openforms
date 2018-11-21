@@ -2,8 +2,8 @@ Package: openforms
 Type: Package
 Title: Import and Transform Data from OpenForms.com
 Version: 0.1.0
-Author: Zac Thiel
-Maintainer: contact@zacthiel.com
+Author: Zac Thiel [aut, cre]
+Maintainer: Zac Thiel <contact@zacthiel.com>
 Description: Use web services to get and transform data from openforms.com.
 License: file LICENSE
 Encoding: UTF-8
