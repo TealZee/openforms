@@ -30,16 +30,18 @@ of_import <- function(formID, apiKey, cache = FALSE) {
   ID$sectionID<-meta$sections$sectionId[1]
   names(ID) = c("controlId", "section", "sectionID")
 
-  i<-2
-  for (i in 2:(nrow(meta$sections))) {
-    ID1<-meta$sections$controls[[i]]
-    ID1<-as.data.frame(ID1)
-    ID1<-as.data.frame(ID1$controlId)
-    names(ID1)=c("controlId")
-    ID1$section<-meta$sections$name[i]
-    ID1$sectionID<-meta$sections$sectionId[i]
-    ID<-rbind(ID,ID1)
-    i = i+1
+  if (length(meta$sections$controls > 1)) {
+    i<-2
+    for (i in 2:(nrow(meta$sections))) {
+      ID1<-meta$sections$controls[[i]]
+      ID1<-as.data.frame(ID1)
+      ID1<-as.data.frame(ID1$controlId)
+      names(ID1)=c("controlId")
+      ID1$section<-meta$sections$name[i]
+      ID1$sectionID<-meta$sections$sectionId[i]
+      ID<-rbind(ID,ID1)
+      i = i+1
+    }
   }
 
   rm(ID1)
@@ -48,14 +50,16 @@ of_import <- function(formID, apiKey, cache = FALSE) {
   lab = as.data.frame(meta$sections$controls[[1]]$label)
   names(lab) = "label"
 
-  i<-2
-  for (i in 2:(nrow(meta$sections))) {
-    lab1<-meta$sections$controls[[i]]
-    lab1<-as.data.frame(lab1)
-    lab1<-as.data.frame(lab1$label)
-    names(lab1)=c("label")
-    lab<-rbind(lab,lab1)
-    i = i+1
+  if (length(meta$sections$controls > 1)) {
+    i<-2
+    for (i in 2:(nrow(meta$sections))) {
+      lab1<-meta$sections$controls[[i]]
+      lab1<-as.data.frame(lab1)
+      lab1<-as.data.frame(lab1$label)
+      names(lab1)=c("label")
+      lab<-rbind(lab,lab1)
+      i = i+1
+    }
   }
 
   rm(lab1)
