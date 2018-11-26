@@ -13,7 +13,7 @@ of_import <- function(formID, apiKey, cache = FALSE) {
   fullResponses<- jsonlite::fromJSON(paste("http://api.us.openforms.com/api/v2/responseList?apiKey=", apiKey, "&formVersionId=",formID,"&showDetail=true&limit=500", sep=""))
 
   #REMOVE UNNEEDED LEVELS OF DATA
-  responses<-flatten(as.data.frame(fullResponses$responses$answers))
+  responses<-jsonlite::flatten(as.data.frame(fullResponses$responses$answers))
   responses<-responses[grep("value", names(responses))]
 
   #RENAME COLUMNS WITH CONTROLID
@@ -30,7 +30,7 @@ of_import <- function(formID, apiKey, cache = FALSE) {
   ID$sectionID<-meta$sections$sectionId[1]
   names(ID) = c("controlId", "section", "sectionID")
 
-  if (length(meta$sections$controls > 1)) {
+  if (length(meta$sections$controls) > 1) {
     i<-2
     for (i in 2:(nrow(meta$sections))) {
       ID1<-meta$sections$controls[[i]]
@@ -44,13 +44,11 @@ of_import <- function(formID, apiKey, cache = FALSE) {
     }
   }
 
-  rm(ID1)
-
   #CREATING DATAFRAME WITH ALL QUESTIONS' LABELS
   lab = as.data.frame(meta$sections$controls[[1]]$label)
   names(lab) = "label"
 
-  if (length(meta$sections$controls > 1)) {
+  if (length(meta$sections$controls) > 1) {
     i<-2
     for (i in 2:(nrow(meta$sections))) {
       lab1<-meta$sections$controls[[i]]
@@ -62,19 +60,12 @@ of_import <- function(formID, apiKey, cache = FALSE) {
     }
   }
 
-  rm(lab1)
-
-  rm(i)
-
   #COMBINING DATAFRAMES WITH QUESTIONS' ID'S AND LABELS
   ID<-cbind(ID,lab)
-
-  rm(lab)
 
   #MATCHING QUESTION LABELS WITH RESPONSE COLUMN NAMES
   namecolumns<-match(as.character(names(responses)),as.character(ID$controlId))
   namecolumns<-ID$label[c(namecolumns)]
-  rm(meta)
 
   names(responses)=namecolumns
 
@@ -88,13 +79,6 @@ of_import <- function(formID, apiKey, cache = FALSE) {
   responses$Date<-sub("-","/",responses$Date)
   responses$Date<-gsub("\\..*","",responses$Date)
   as.POSIXct(responses$Date)
-
-  # REMOVE UNNEEDED DATA FROM WORKSPACE
-  rm(namecolumns)
-
-  rm(fullResponses)
-
-  rm(ID)
 
   # RETURN DATA
   print(responses)
