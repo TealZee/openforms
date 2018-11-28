@@ -3,7 +3,7 @@
 #' This function returns form response data for a given form ID
 #' @param formID The version ID of the form
 #' @param apiKey The API key for the form owner's account
-#' @param startDate The start date of the query in "%m/%d/%Y %H;%M:%S" format
+#' @param startDate The start date of the query in "%m/%d/%Y %H:%M:%S" format
 #' @param cache Allows data to be cached in a file to avoid hitting database repeatedly for the same data. False by default. If true, accepts a file path as an argument to cache imported data.
 #' @export
 #' @examples
