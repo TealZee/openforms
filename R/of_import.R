@@ -103,7 +103,7 @@ of_import <- function(formID, apiKey, cache = FALSE) {
   ID<-cbind(ID,lab)
 
   #MATCHING QUESTION LABELS WITH RESPONSE COLUMN NAMES
-  namecolumns<-match(as.character(names(responses)),as.character(ID$controlId))
+  namecolumns<-match(as.character(ID$controlId), as.character(names(responses)))
   namecolumns<-ID$label[c(namecolumns)]
 
   names(responses)=c(paste(namecolumns, "ID", "Date"))
