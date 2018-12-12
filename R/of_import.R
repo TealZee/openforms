@@ -58,6 +58,12 @@ of_import <- function(formID, apiKey, cache = FALSE) {
   #RENAME COLUMNS WITH CONTROLID
   names(responses)<-sub(".value","",names(responses))
 
+  #REMOVE DUPLICATED LIST VERSIONS OF RESPONSES TO MULTI-SELECT RESPONSES
+  responses[grepl("selectedValue", names(responses))] <- NULL
+
+  # COLLAPSE LIST RESPONSES INTO COMMA SEPARATED VALUES
+  responses[which(sapply(responses, class) == "list")] <- vapply(responses[which(sapply(responses, class) == "list")], paste, collapse = ",", character(1L))
+
   #IMPORT FORM METADATA FOR IDENTIFYING QUESTIONS
   meta <- jsonlite::fromJSON(paste("http://api.us.openforms.com/api/v2/form?apiKey=", apiKey, "&formVersionId=", formID, sep=""))
 
@@ -103,10 +109,15 @@ of_import <- function(formID, apiKey, cache = FALSE) {
   ID<-cbind(ID,lab)
 
   #MATCHING QUESTION LABELS WITH RESPONSE COLUMN NAMES
-  namecolumns<-match(as.character(ID$controlId), as.character(names(responses)))
-  namecolumns<-ID$label[c(namecolumns)]
+  namecolumns<-match(as.character(names(responses)), as.character(ID$controlId))
+  namecolumns<-ID$label[c(namecolumns[is.na(namecolumns) == FALSE])]
 
-  names(responses)=c(paste(namecolumns, "ID", "Date"))
+  names(responses)=c(paste(namecolumns), "ID", "Date")
+
+  # FIX COLUMNS WITH ONLY WHITESPACE IN NAMES IF ANY EXIST
+  if (length(names(responses)[which(nchar(trimws(names(responses))) == 0)]) > 0) {
+    names(responses)[which(nchar(trimws(names(responses))) == 0)] = c(paste("Unnamed Column", 1:length(which(nchar(trimws(names(responses))) == 0))))
+  }
 
   # RETURN DATA
   print(responses)
