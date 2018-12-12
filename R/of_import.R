@@ -12,9 +12,48 @@ of_import <- function(formID, apiKey, cache = FALSE) {
 
   fullResponses<- jsonlite::fromJSON(paste("http://api.us.openforms.com/api/v2/responseList?apiKey=", apiKey, "&formVersionId=",formID,"&showDetail=true&limit=500", sep=""))
 
-  #REMOVE UNNEEDED LEVELS OF DATA
+  # EXTRACT RESPONSE DATA INTO SEPARATE DATAFRAME
   responses<-jsonlite::flatten(as.data.frame(fullResponses$responses$answers))
-  responses<-responses[grep("value", names(responses))]
+  responses$ID <- fullResponses$responses$receiptNumberId
+
+  #ADD SUBMIT DATE TIME TO RESPONSES DATA FRAME
+  responses$Date<-fullResponses$responses$submitDatetime
+  responses$Date<-sub("T"," ",responses$Date)
+  responses$Date<-sub("-","/",responses$Date)
+  responses$Date<-sub("-","/",responses$Date)
+  responses$Date<-gsub("\\..*","",responses$Date)
+
+  if (fullResponses$totalCount > 500) {
+
+    # CALCULATE NUMBER OF ADDITIONAL QUERIES TO PULL
+    if (is.integer(fullResponses$totalCount/500)) {
+      numberQueries <- fullResponses$totalCount/500
+    } else {
+      numberQueries <- trunc(fullResponses$totalCount/500)
+    }
+
+    i <- 1
+    for (i in (i:numberQueries)) {
+      # Set Query Start and Get Data
+      startIndex <- i * 500
+      nextResponses <- jsonlite::fromJSON(paste("http://api.us.openforms.com/api/v2/responseList?apiKey=", apiKey, "&formVersionId=",formID,"&showDetail=true&startIndex=", startIndex, "&limit=500", sep=""))
+      row.names(nextResponses$responses) <- as.character((as.numeric(row.names(nextResponses$responses)) + startIndex) - 1)
+
+      # ADD RECEIPT NUMBERS AND DATE TO DATAFRAME
+      nextResponses$responses$answers$ID <- nextResponses$responses$receiptNumberId
+
+      nextResponses$responses$answers$Date<-nextResponses$responses$submitDatetime
+      nextResponses$responses$answers$Date<-sub("T"," ",nextResponses$responses$answers$Date)
+      nextResponses$responses$answers$Date<-sub("-","/",nextResponses$responses$answers$Date)
+      nextResponses$responses$answers$Date<-sub("-","/",nextResponses$responses$answers$Date)
+      nextResponses$responses$answers$Date<-gsub("\\..*","",nextResponses$responses$answers$Date)
+
+      # Avoid Duplicate Row Names and Merge with Previous Query Data
+      responses<-rbind(responses, jsonlite::flatten(as.data.frame(nextResponses$responses$answers)))
+
+      i <- i + 1
+    }
+  }
 
   #RENAME COLUMNS WITH CONTROLID
   names(responses)<-sub(".value","",names(responses))
@@ -67,18 +106,7 @@ of_import <- function(formID, apiKey, cache = FALSE) {
   namecolumns<-match(as.character(names(responses)),as.character(ID$controlId))
   namecolumns<-ID$label[c(namecolumns)]
 
-  names(responses)=namecolumns
-
-  #ADD RESPONSE ID FOR WORKFLOW DASHBOARD
-  responses$ID<-fullResponses$responses$receiptNumberId
-
-  #ADD SUBMIT DATE TIME TO FINAL DATA FRAME
-  responses$Date<-fullResponses$responses$submitDatetime
-  responses$Date<-sub("T"," ",responses$Date)
-  responses$Date<-sub("-","/",responses$Date)
-  responses$Date<-sub("-","/",responses$Date)
-  responses$Date<-gsub("\\..*","",responses$Date)
-  as.POSIXct(responses$Date)
+  names(responses)=c(paste(namecolumns, "ID", "Date"))
 
   # RETURN DATA
   print(responses)
