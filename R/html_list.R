@@ -18,6 +18,8 @@ html_list <- function (items) {
   # FORMAT ITEMS INTO HTML BULLETED LIST
   if (itemsCount > 0) {
     list <- paste('<ul><li>', items[1], '</li>', sep="")
+  } else {
+    list <- paste('', sep="")
   }
 
   if (itemsCount > 1) {
