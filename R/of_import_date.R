@@ -23,6 +23,8 @@ of_import_date <- function(formID, apiKey, startDate) {
 
   apiResponse <- httr::content(apiResponse)
 
+  if (apiResponse$totalItems > 0) {
+
   totalPages <- apiResponse$totalPages
 
   x <- 1
@@ -129,4 +131,5 @@ of_import_date <- function(formID, apiKey, startDate) {
     names(allResponses)[which(nchar(trimws(names(allResponses))) == 0)] = c(paste("Unnamed Column", 1:length(which(nchar(trimws(names(allResponses))) == 0))))
   }
   print(allResponses)
+  }
 }
