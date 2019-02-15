@@ -11,31 +11,16 @@ of_import <- function(formID, apiKey) {
 
   options(stringsAsFactors = FALSE)
 
-  ########## API CALL TO GET FORM METADATA ##########
-  apiMetadata <- httr::GET(paste("https://api.us.openforms.com/api/v4/forms/", formID,"?loadStructure=true", sep=""),
+  ########## PARSE DATA FROM API RESPONSE JSON INTO DATAFRAME ##########
+  apiResponse <- httr::GET(paste("http://api.us.openforms.com/api/v4/responses?formId=", formID,"&loadAnswers=false", sep=""),
                            httr::add_headers("accept" = "application/json", "X-API-KEY" = apiKey, "content-Type" = "application/json"))
 
-  apiMetadata <- httr::content(apiMetadata)
+  apiResponse <- httr::content(apiResponse)
 
-  ########## PARSE JSON TO GET COLUMN NAMES AND CONTROL ID'S ##########
-  i <- 1
-  for (i in i:length(apiMetadata$sections)) {
-    j <- 1
-    for (j in j: length(apiMetadata$sections[[i]]$fields)) {
-      if (i == 1 && j == 1) {
-        allFields <- as.data.frame(t(apiMetadata$sections[[i]]$fields[[j]]))
-      } else {
-        fields <- as.data.frame(t(apiMetadata$sections[[i]]$fields[[j]]))
-        allFields <- rbind(allFields, fields)
-      }
-      j <- j + 1
-    }
-    i <- i + 1
-  }
+  totalPages <- apiResponse$totalPages
 
-  ########## PARSE DATA FROM API RESPONSE JSON INTO DATAFRAME ##########
   x <- 1
-  for (x in x:apiResponse$totalPages) {
+  for (x in x:totalPages) {
     ########## API CALL TO GET FORM RESPONSE DATA ##########
 
     apiResponse <- httr::GET(paste("http://api.us.openforms.com/api/v4/responses?formId=", formID,"&loadAnswers=true&pageSize=1000&page=", x, sep=""),
@@ -99,11 +84,42 @@ of_import <- function(formID, apiKey) {
     x <- x + 1
   }
 
+  ########## API CALL TO GET FORM METADATA ##########
+  # GET FORM VERSION ID FROM RESPONSES API CALL
+  versionId <- apiResponse$items[[1]]$formVersionId
+
+  apiMetadata <- httr::GET(paste("https://api.us.openforms.com/api/v4/forms/", formID,"?versionId=", versionId, "&loadStructure=true", sep=""),
+                           httr::add_headers("accept" = "application/json", "X-API-KEY" = apiKey, "content-Type" = "application/json"))
+
+  apiMetadata <- httr::content(apiMetadata)
+
+  ########## PARSE JSON TO GET COLUMN NAMES AND CONTROL ID'S ##########
+  i <- 1
+  for (i in i:length(apiMetadata$sections)) {
+    j <- 1
+    for (j in j: length(apiMetadata$sections[[i]]$fields)) {
+      if (i == 1 && j == 1) {
+        allFields <- as.data.frame(t(apiMetadata$sections[[i]]$fields[[j]]))
+      } else {
+        fields <- as.data.frame(t(apiMetadata$sections[[i]]$fields[[j]]))
+        allFields <- rbind(allFields, fields)
+      }
+      j <- j + 1
+    }
+    i <- i + 1
+  }
+
+  ########## REFORMAT DATES ##########
+  allResponses$Date <- as.POSIXct(gsub("T", " ", allResponses$Date))
+
   ########## SET RESPONSES DATAFRAME COLUMN NAMES TO FIELD NAMES IN OPENFORMS ##########
-  names(allResponses)[!is.na(match(names(allResponses), allFields$id))] <- as.character(allFields$name)[!is.na(match(allFields$id, names(allResponses)))]
+  matchColumns <- match(names(allResponses), allFields$id)
+  matchColumns <- matchColumns[!is.na(matchColumns)]
+  names(allResponses)[1:(length(names(allResponses))-2)] <- as.character(allFields$name)[matchColumns]
 
   # FIX COLUMNS WITH ONLY WHITESPACE IN NAMES IF ANY EXIST
   if (length(names(allResponses)[which(nchar(trimws(names(allResponses))) == 0)]) > 0) {
     names(allResponses)[which(nchar(trimws(names(allResponses))) == 0)] = c(paste("Unnamed Column", 1:length(which(nchar(trimws(names(allResponses))) == 0))))
   }
+  print(allResponses)
 }
