@@ -42,7 +42,7 @@ of_import_date <- function(formID, apiKey, startDate) {
   startDate <- gsub(":", "%3A", startDate)
 
   ########## PARSE DATA FROM API RESPONSE JSON INTO DATAFRAME ##########
-  apiResponse <- httr::GET(paste("http://api.us.openforms.com/api/v4/responses?formId=", formID,"&loadAnswers=false", sep=""),
+  apiResponse <- httr::GET(paste("http://api.us.openforms.com/api/v4/responses?formId=", formID, "&fromDateTime=", startDate,"&loadAnswers=false", sep=""),
                            httr::add_headers("accept" = "application/json", "X-API-KEY" = apiKey, "content-Type" = "application/json"))
 
   apiResponse <- httr::content(apiResponse)
