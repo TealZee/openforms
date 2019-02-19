@@ -135,5 +135,6 @@ of_import_date <- function(formID, apiKey, startDate) {
     allFields$type <- unlist(allFields$type)
     allResponses <- data.frame(matrix(ncol = length(allFields$type[!grepl("Static", allFields$type)]), nrow = 0))
     names(allResponses) = allFields$name[!grepl("Static", allFields$type)]
+    print(allResponses)
   }
 }
