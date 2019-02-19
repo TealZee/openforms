@@ -12,6 +12,30 @@ of_import_date <- function(formID, apiKey, startDate) {
 
   options(stringsAsFactors = FALSE)
 
+  ########## API CALL TO GET FORM METADATA ##########
+  # GET FORM VERSION ID FROM RESPONSES API CALL
+
+  apiMetadata <- httr::GET(paste("https://api.us.openforms.com/api/v4/forms/", formID,"?loadStructure=true", sep=""),
+                           httr::add_headers("accept" = "application/json", "X-API-KEY" = apiKey, "content-Type" = "application/json"))
+
+  apiMetadata <- httr::content(apiMetadata)
+
+  ########## PARSE JSON TO GET COLUMN NAMES AND CONTROL ID'S ##########
+  i <- 1
+  for (i in i:length(apiMetadata$sections)) {
+    j <- 1
+    for (j in j: length(apiMetadata$sections[[i]]$fields)) {
+      if (i == 1 && j == 1) {
+        allFields <- as.data.frame(t(apiMetadata$sections[[i]]$fields[[j]]))
+      } else {
+        fields <- as.data.frame(t(apiMetadata$sections[[i]]$fields[[j]]))
+        allFields <- rbind(allFields, fields)
+      }
+      j <- j + 1
+    }
+    i <- i + 1
+  }
+
   # FORMAT START DATE
   startDate <- format(as.POSIXct(startDate), "%Y-%m-%d %H:%M:%S")
   startDate <- gsub(" ", "%20", startDate)
@@ -93,31 +117,6 @@ of_import_date <- function(formID, apiKey, startDate) {
     x <- x + 1
   }
 
-  ########## API CALL TO GET FORM METADATA ##########
-  # GET FORM VERSION ID FROM RESPONSES API CALL
-  versionId <- apiResponse$items[[1]]$formVersionId
-
-  apiMetadata <- httr::GET(paste("https://api.us.openforms.com/api/v4/forms/", formID,"?versionId=", versionId, "&loadStructure=true", sep=""),
-                           httr::add_headers("accept" = "application/json", "X-API-KEY" = apiKey, "content-Type" = "application/json"))
-
-  apiMetadata <- httr::content(apiMetadata)
-
-  ########## PARSE JSON TO GET COLUMN NAMES AND CONTROL ID'S ##########
-  i <- 1
-  for (i in i:length(apiMetadata$sections)) {
-    j <- 1
-    for (j in j: length(apiMetadata$sections[[i]]$fields)) {
-      if (i == 1 && j == 1) {
-        allFields <- as.data.frame(t(apiMetadata$sections[[i]]$fields[[j]]))
-      } else {
-        fields <- as.data.frame(t(apiMetadata$sections[[i]]$fields[[j]]))
-        allFields <- rbind(allFields, fields)
-      }
-      j <- j + 1
-    }
-    i <- i + 1
-  }
-
   ########## REFORMAT DATES ##########
   allResponses$Date <- as.POSIXct(gsub("T", " ", allResponses$Date))
 
@@ -131,5 +130,10 @@ of_import_date <- function(formID, apiKey, startDate) {
     names(allResponses)[which(nchar(trimws(names(allResponses))) == 0)] = c(paste("Unnamed Column", 1:length(which(nchar(trimws(names(allResponses))) == 0))))
   }
   print(allResponses)
+  } else {
+    allFields$name <- unlist(allFields$name)
+    allFields$type <- unlist(allFields$type)
+    allResponses <- data.frame(matrix(ncol = length(allFields$type[!grepl("Static", allFields$type)]), nrow = 0))
+    names(allResponses) = allFields$name[!grepl("Static", allFields$type)]
   }
 }
